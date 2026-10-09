@@ -57,7 +57,9 @@ function renderHistory() {
     box.append(row);
   });
 }
-$("check").addEventListener("click", () => {
+const API_BASE = "https://wajid-media-api.rsarian31.workers.dev";
+
+$("check").addEventListener("click", async () => {
   const url = $("url").value.trim();
   const platform = detectPlatform(url);
   if (!platform) {
@@ -69,7 +71,36 @@ $("check").addEventListener("click", () => {
     showStatus("This link is from another website. If it points directly to a media file, use the browser's open/download option when available.", "info");
     return;
   }
-  showStatus(platform + " link detected. This free, no-server version cannot extract protected media from social-platform links. Open the link and use the platform's official download/save option when available. A universal downloader needs a permitted source or processing service.", "warn");
+
+  const button = $("check");
+  button.disabled = true;
+  button.textContent = "Checking…";
+  showStatus("Checking this link with WAJID MEDIA API…", "info");
+
+  try {
+    const response = await fetch(API_BASE + "/api/check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url })
+    });
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      showStatus(result.error || "The API could not check this link. Please try again.", "warn");
+      return;
+    }
+
+    if (result.recognized) {
+      showStatus(result.platform + " link detected by WAJID MEDIA API. Download availability has not been verified; use the platform's official save/download option when available.", "warn");
+    } else {
+      showStatus("The API could not identify this platform. If the link points directly to a media file, use the browser's open/download option when available.", "info");
+    }
+  } catch {
+    showStatus("Could not reach WAJID MEDIA API. Check your connection and try again.", "warn");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Check link ↗";
+  }
 });
 $("url").addEventListener("keydown", event => {
   if (event.key === "Enter") $("check").click();
