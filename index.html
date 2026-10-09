@@ -20,7 +20,7 @@
     <section class="hero">
       <div class="eyebrow">PERSONAL • SIMPLE • FREE</div>
       <h1>Your media.<br><em>Your way.</em></h1>
-      <p>Paste a link to identify its platform, or choose a media file already saved on your phone.</p>
+      <p>Identify social links, download direct media files when the host allows it, or convert a media file from your phone to MP3.</p>
     </section>
 
     <section class="card">
@@ -42,14 +42,14 @@
     <section class="card">
       <div class="sectionhead"><h2>⚙️ Media options</h2><span class="small">Where supported</span></div>
       <div class="grid2">
-        <div class="field"><label for="quality">Video quality preference</label><select id="quality"><option>Best available</option><option>1080p Full HD</option><option>720p HD</option><option>480p</option><option>360p</option></select></div>
+        <div class="field"><label for="quality">Video quality preference (for supported sources)</label><select id="quality"><option>Best available</option><option>1080p Full HD</option><option>720p HD</option><option>480p</option><option>360p</option></select></div>
         <div class="field"><label for="format">Output format</label><select id="format"><option value="mp4">MP4 video</option><option value="mp3">MP3 audio</option><option value="original">Original format</option></select></div>
       </div>
       <div class="localtools">
-        <label class="label" for="localfile">Use a video or audio file from your phone</label>
+        <label class="label" for="localfile">Choose a video or audio file from your phone</label>
         <input id="localfile" type="file" accept="video/*,audio/*">
-        <button class="btn secondary" id="localbtn">Save selected file</button>
-        <p class="small">This saves the original file. MP3 conversion is not included in this first version.</p>
+        <button class="btn secondary" id="localbtn">Save / Convert selected file</button>
+        <p class="small">Choose MP3 above to extract audio from a local video/audio file. The first conversion downloads a free browser engine and may use substantial phone memory. No file is uploaded by the converter.</p>
       </div>
     </section>
 
@@ -58,8 +58,8 @@
       <div id="history" class="history"><div class="empty">Your checked links will appear here.</div></div>
     </section>
 
-    <footer class="foot">WAJID MEDIA HUB · Personal-use prototype<br>Only save media you own or have permission to download. Use official platform download options where required.</footer>
+    <footer class="foot">WAJID MEDIA HUB · Personal-use prototype<br>Only save media you own or have permission to download. Social links are identified, not extracted. Direct downloads depend on host access/CORS; quality selection cannot change quality unless the source provides it. MP3 conversion runs locally in your browser.</footer>
   </main>
-  <script src="./app.js?v=2" defer></script>
+  <script src="./app.js?v=3" defer></script>
 </body>
 </html>
