@@ -1,5 +1,7 @@
 const $ = (id) => document.getElementById(id);
 const statusBox = $("status");
+const API_BASE = "https://wajid-media-api.rsarian31.workers.dev";
+let ffmpegInstance = null;
 
 function detectPlatform(raw) {
   try {
@@ -9,28 +11,51 @@ function detectPlatform(raw) {
     if (host === "tiktok.com" || host.endsWith(".tiktok.com")) return "TikTok";
     if (host === "instagram.com" || host.endsWith(".instagram.com")) return "Instagram";
     return "Other website";
-  } catch {
-    return null;
+  } catch { return null; }
+}
+function showStatus(message, type = "info", actions = []) {
+  statusBox.className = "status show " + type;
+  statusBox.replaceChildren();
+  const text = document.createElement("div");
+  text.textContent = message;
+  statusBox.append(text);
+  if (actions.length) {
+    const row = document.createElement("div");
+    row.className = "status-actions";
+    actions.forEach(({label, onClick, href}) => {
+      if (href) {
+        const a = document.createElement("a");
+        a.className = "btn secondary status-action";
+        a.href = href;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.textContent = label;
+        row.append(a);
+      } else {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "btn secondary status-action";
+        b.textContent = label;
+        b.addEventListener("click", onClick);
+        row.append(b);
+      }
+    });
+    statusBox.append(row);
   }
 }
-function showStatus(message, type = "info") {
-  statusBox.className = "status show " + type;
-  statusBox.textContent = message;
-}
 function getHistory() {
-  try { return JSON.parse(localStorage.getItem("wmh-history") || "[]"); }
-  catch { return []; }
+  try { return JSON.parse(localStorage.getItem("wmh-history") || "[]"); } catch { return []; }
 }
 function saveHistory(url, platform) {
   const items = getHistory().filter(item => item.url !== url);
-  items.unshift({ url, platform, time: Date.now() });
+  items.unshift({url, platform, time: Date.now()});
   localStorage.setItem("wmh-history", JSON.stringify(items.slice(0, 12)));
   renderHistory();
 }
 function renderHistory() {
   const box = $("history");
-  const items = getHistory();
   box.replaceChildren();
+  const items = getHistory();
   if (!items.length) {
     const empty = document.createElement("div");
     empty.className = "empty";
@@ -57,18 +82,47 @@ function renderHistory() {
     box.append(row);
   });
 }
-const API_BASE = "https://wajid-media-api.rsarian31.workers.dev";
-
+function isDirectMediaUrl(raw) {
+  try {
+    const path = new URL(raw).pathname.toLowerCase();
+    return /\.(mp4|webm|mov|m4v|mp3|m4a|wav|ogg|oga|aac|flac)(?:$)/i.test(path);
+  } catch { return false; }
+}
+function downloadBlob(blob, filename) {
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = objectUrl;
+  a.download = filename;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
+}
+async function downloadDirectMedia(url) {
+  showStatus("Trying to fetch the direct media file…", "info");
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    const blob = await response.blob();
+    const name = decodeURIComponent(new URL(url).pathname.split("/").pop() || "media-file");
+    downloadBlob(blob, name);
+    showStatus("Download started. Check your phone's Downloads folder.", "success");
+  } catch {
+    showStatus("This host blocks browser downloads (CORS) or requires access. Open the source link and use its official download/save option.", "warn", [{label:"Open source link", href:url}]);
+  }
+}
 $("check").addEventListener("click", async () => {
   const url = $("url").value.trim();
   const platform = detectPlatform(url);
-  if (!platform) {
-    showStatus("Please paste a valid http:// or https:// link first.", "warn");
+  if (!platform) return showStatus("Please paste a valid http:// or https:// link first.", "warn");
+  saveHistory(url, platform);
+
+  if (isDirectMediaUrl(url)) {
+    showStatus("This looks like a direct media-file link.", "info", [{label:"Download media file", onClick:() => downloadDirectMedia(url)}, {label:"Open source", href:url}]);
     return;
   }
-  saveHistory(url, platform);
   if (platform === "Other website") {
-    showStatus("This link is from another website. If it points directly to a media file, use the browser's open/download option when available.", "info");
+    showStatus("This website is not one of the four social platforms. If the URL is a direct media file, use the download option when available.", "info", [{label:"Open link", href:url}]);
     return;
   }
 
@@ -76,56 +130,83 @@ $("check").addEventListener("click", async () => {
   button.disabled = true;
   button.textContent = "Checking…";
   showStatus("Checking this link with WAJID MEDIA API…", "info");
-
   try {
     const response = await fetch(API_BASE + "/api/check", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url })
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({url})
     });
     const result = await response.json();
-
     if (!response.ok || !result.success) {
-      showStatus(result.error || "The API could not check this link. Please try again.", "warn");
+      showStatus(result.error || "The API could not check this link. Please try again.", "warn", [{label:"Open platform link", href:url}]);
       return;
     }
-
     if (result.recognized) {
-      showStatus(result.platform + " link detected by WAJID MEDIA API. Download availability has not been verified; use the platform's official save/download option when available.", "warn");
+      showStatus(result.platform + " link recognized. This free API identifies platforms but does not extract protected videos. Use the platform's official save/download feature when available.", "warn", [{label:"Open " + result.platform, href:url}]);
     } else {
-      showStatus("The API could not identify this platform. If the link points directly to a media file, use the browser's open/download option when available.", "info");
+      showStatus("The API could not identify this platform. You can still open the link in your browser.", "info", [{label:"Open link", href:url}]);
     }
   } catch {
-    showStatus("Could not reach WAJID MEDIA API. Check your connection and try again.", "warn");
+    showStatus("Could not reach WAJID MEDIA API. Check your connection and try again.", "warn", [{label:"Open platform link", href:url}]);
   } finally {
     button.disabled = false;
     button.textContent = "Check link ↗";
   }
 });
-$("url").addEventListener("keydown", event => {
-  if (event.key === "Enter") $("check").click();
-});
-$("clear").addEventListener("click", () => {
-  localStorage.removeItem("wmh-history");
-  renderHistory();
-});
-$("localbtn").addEventListener("click", () => {
+$("url").addEventListener("keydown", event => { if (event.key === "Enter") $("check").click(); });
+$("clear").addEventListener("click", () => { localStorage.removeItem("wmh-history"); renderHistory(); });
+
+async function getFFmpeg() {
+  if (ffmpegInstance) return ffmpegInstance;
+  showStatus("Loading the free MP3 conversion engine. The first load may be large; stay on this page…", "info");
+  const [{FFmpeg}, {toBlobURL}] = await Promise.all([
+    import("https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js"),
+    import("https://unpkg.com/@ffmpeg/util@0.12.1/dist/esm/index.js")
+  ]);
+  const ffmpeg = new FFmpeg();
+  const base = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
+  await ffmpeg.load({
+    coreURL: await toBlobURL(base + "/ffmpeg-core.js", "text/javascript"),
+    wasmURL: await toBlobURL(base + "/ffmpeg-core.wasm", "application/wasm")
+  });
+  ffmpegInstance = ffmpeg;
+  return ffmpeg;
+}
+$("localbtn").addEventListener("click", async () => {
   const file = $("localfile").files[0];
-  if (!file) {
-    showStatus("Choose a video or audio file from your phone first.", "warn");
+  if (!file) return showStatus("Choose a video or audio file from your phone first.", "warn");
+  const format = $("format").value;
+  if (format !== "mp3") {
+    downloadBlob(file, file.name);
+    showStatus("Save requested for " + file.name + ". Check your phone's Downloads folder.", "success");
     return;
   }
-  const objectUrl = URL.createObjectURL(file);
-  const anchor = document.createElement("a");
-  anchor.href = objectUrl;
-  anchor.download = file.name;
-  document.body.append(anchor);
-  anchor.click();
-  anchor.remove();
-  setTimeout(() => URL.revokeObjectURL(objectUrl), 3000);
-  showStatus("Save requested for " + file.name + ". The original format is kept; MP3 conversion is not included yet.", "info");
+  if (file.size > 150 * 1024 * 1024) {
+    return showStatus("This file is over 150 MB. For phone memory and stability, choose a smaller file.", "warn");
+  }
+  const button = $("localbtn");
+  button.disabled = true;
+  button.textContent = "Converting…";
+  try {
+    const ffmpeg = await getFFmpeg();
+    const inputName = "input_" + (file.name.replace(/[^a-zA-Z0-9._-]/g, "_") || "media");
+    const outputName = "wajid-output.mp3";
+    ffmpeg.on("progress", ({progress}) => {
+      if (Number.isFinite(progress)) showStatus("Converting to MP3: " + Math.min(100, Math.round(progress * 100)) + "%. Keep this page open.", "info");
+    });
+    await ffmpeg.writeFile(inputName, new Uint8Array(await file.arrayBuffer()));
+    await ffmpeg.exec(["-i", inputName, "-vn", "-codec:a", "libmp3lame", "-q:a", "2", outputName]);
+    const data = await ffmpeg.readFile(outputName);
+    downloadBlob(new Blob([data], {type:"audio/mpeg"}), file.name.replace(/\.[^.]+$/, "") + ".mp3");
+    await ffmpeg.deleteFile(inputName).catch(() => {});
+    await ffmpeg.deleteFile(outputName).catch(() => {});
+    showStatus("MP3 conversion finished. Your download should appear in the phone's Downloads folder.", "success");
+  } catch (error) {
+    showStatus("MP3 conversion could not run on this browser/device. Try a smaller file or select Original format. Details: " + (error?.message || "conversion failed"), "warn");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Save / Convert selected file";
+  }
 });
-if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
-  navigator.serviceWorker.register("./sw.js").catch(() => {});
-}
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("./sw.js").catch(() => {});
 renderHistory();
