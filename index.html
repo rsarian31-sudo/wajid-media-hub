@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090b16">
+  <meta name="description" content="WAJID MEDIA HUB — personal media toolbox">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="stylesheet" href="./style.css">
+  <title>WAJID MEDIA HUB</title>
+</head>
+<body>
+  <main class="wrap">
+    <header class="top">
+      <div class="logo" aria-hidden="true">▶</div>
+      <div><div class="brand">WAJID <span>MEDIA HUB</span></div><div class="tag">Your personal media toolbox</div></div>
+      <div class="pill">● FREE MODE</div>
+    </header>
+
+    <section class="hero">
+      <div class="eyebrow">PERSONAL • SIMPLE • FREE</div>
+      <h1>Your media.<br><em>Your way.</em></h1>
+      <p>Paste a link to identify its platform, or choose a media file already saved on your phone.</p>
+    </section>
+
+    <section class="card">
+      <label class="label" for="url">Paste a video link</label>
+      <div class="inputrow">
+        <input id="url" class="urlinput" type="url" placeholder="https://…" autocomplete="url" inputmode="url">
+        <button id="check" class="btn">Check link ↗</button>
+      </div>
+      <div class="platforms" aria-label="Supported platforms">
+        <div class="platform"><b>f</b>Facebook</div>
+        <div class="platform"><b>▶</b>YouTube</div>
+        <div class="platform"><b>♪</b>TikTok</div>
+        <div class="platform"><b>◎</b>Instagram</div>
+      </div>
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+      <div class="notice">🔒 <strong>Privacy-first:</strong> checked links are stored in this browser on your device. This free version does not send your links to a server. Social platforms may restrict downloading.</div>
+    </section>
+
+    <section class="card">
+      <div class="sectionhead"><h2>⚙️ Media options</h2><span class="small">Where supported</span></div>
+      <div class="grid2">
+        <div class="field"><label for="quality">Video quality preference</label><select id="quality"><option>Best available</option><option>1080p Full HD</option><option>720p HD</option><option>480p</option><option>360p</option></select></div>
+        <div class="field"><label for="format">Output format</label><select id="format"><option value="mp4">MP4 video</option><option value="mp3">MP3 audio</option><option value="original">Original format</option></select></div>
+      </div>
+      <div class="localtools">
+        <label class="label" for="localfile">Use a video or audio file from your phone</label>
+        <input id="localfile" type="file" accept="video/*,audio/*">
+        <button class="btn secondary" id="localbtn">Save selected file</button>
+        <p class="small">This saves the original file. MP3 conversion is not included in this first version.</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="sectionhead"><h2>🕘 Recent links</h2><button class="btn secondary compact" id="clear">Clear history</button></div>
+      <div id="history" class="history"><div class="empty">Your checked links will appear here.</div></div>
+    </section>
+
+    <footer class="foot">WAJID MEDIA HUB · Personal-use prototype<br>Only save media you own or have permission to download. Use official platform download options where required.</footer>
+  </main>
+  <script src="./app.js" defer></script>
+</body>
+</html>
