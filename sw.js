@@ -1,4 +1,4 @@
-const CACHE = "wajid-media-hub-v1";
+const CACHE = "wajid-media-hub-v2";
 const ASSETS = ["./", "./index.html", "./style.css", "./app.js", "./manifest.json"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
