@@ -160,15 +160,35 @@ async function getFFmpeg() {
   if (ffmpegInstance) return ffmpegInstance;
   showStatus("Loading the free MP3 conversion engine. The first load may be large; stay on this page…", "info");
   const [{FFmpeg}, {toBlobURL}] = await Promise.all([
-    import("https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js"),
-    import("https://unpkg.com/@ffmpeg/util@0.12.1/dist/esm/index.js")
+    import("https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js"),
+    import("https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js")
   ]);
   const ffmpeg = new FFmpeg();
-  const base = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
-  await ffmpeg.load({
-    coreURL: await toBlobURL(base + "/ffmpeg-core.js", "text/javascript"),
-    wasmURL: await toBlobURL(base + "/ffmpeg-core.wasm", "application/wasm")
-  });
+
+  // The FFmpeg class worker must be same-origin or a blob URL. Fetch its
+  // source and rewrite its two relative imports to absolute CDN URLs.
+  const workerBase = "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/";
+  const workerResponse = await fetch(workerBase + "worker.js");
+  if (!workerResponse.ok) throw new Error("Could not load FFmpeg worker (" + workerResponse.status + ")");
+  let workerSource = await workerResponse.text();
+  workerSource = workerSource
+    .replaceAll('"./const.js"', '"' + workerBase + 'const.js"')
+    .replaceAll('"./errors.js"', '"' + workerBase + 'errors.js"')
+    .replaceAll("'./const.js'", "'" + workerBase + "const.js'")
+    .replaceAll("'./errors.js'", "'" + workerBase + "errors.js'");
+  const workerBlobURL = URL.createObjectURL(new Blob([workerSource], {type:"text/javascript"}));
+
+  const base = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd";
+  try {
+    await ffmpeg.load({
+      classWorkerURL: workerBlobURL,
+      coreURL: await toBlobURL(base + "/ffmpeg-core.js", "text/javascript"),
+      wasmURL: await toBlobURL(base + "/ffmpeg-core.wasm", "application/wasm")
+    });
+  } finally {
+    // The worker has already been created; revoke the URL after a short delay.
+    setTimeout(() => URL.revokeObjectURL(workerBlobURL), 60000);
+  }
   ffmpegInstance = ffmpeg;
   return ffmpeg;
 }
