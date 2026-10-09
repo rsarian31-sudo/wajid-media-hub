@@ -99,16 +99,33 @@ function downloadBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
 }
 async function downloadDirectMedia(url) {
+  const outputFormat = $("format").value;
   showStatus("Trying to fetch the direct media file…", "info");
   try {
     const response = await fetch(url);
     if (!response.ok) throw new Error("HTTP " + response.status);
     const blob = await response.blob();
     const name = decodeURIComponent(new URL(url).pathname.split("/").pop() || "media-file");
-    downloadBlob(blob, name);
-    showStatus("Download started. Check your phone's Downloads folder.", "success");
-  } catch {
-    showStatus("This host blocks browser downloads (CORS) or requires access. Open the source link and use its official download/save option.", "warn", [{label:"Open source link", href:url}]);
+    if (outputFormat !== "mp3") {
+      downloadBlob(blob, name);
+      showStatus("Download started. The source file format is kept. Check your phone's Downloads folder.", "success");
+      return;
+    }
+    if (blob.size > 150 * 1024 * 1024) throw new Error("This file is over 150 MB; choose a smaller file or Original format.");
+    const ffmpeg = await getFFmpeg();
+    const inputName = "source-media";
+    const outputName = "wajid-audio.mp3";
+    showStatus("Converting the directly accessible media file to MP3. Keep this page open…", "info");
+    await ffmpeg.writeFile(inputName, new Uint8Array(await blob.arrayBuffer()));
+    await ffmpeg.exec(["-i", inputName, "-vn", "-codec:a", "libmp3lame", "-q:a", "2", outputName]);
+    const data = await ffmpeg.readFile(outputName);
+    downloadBlob(new Blob([data], {type:"audio/mpeg"}), name.replace(/\\.[^.]+$/, "") + ".mp3");
+    await ffmpeg.deleteFile(inputName).catch(() => {});
+    await ffmpeg.deleteFile(outputName).catch(() => {});
+    showStatus("MP3 download started. Check your phone's Downloads folder.", "success");
+  } catch (error) {
+    const detail = error?.message || "The source blocks browser access (CORS) or needs permission.";
+    showStatus("Could not download/convert this direct media URL. " + detail + " Social-platform page links are not direct media files; open the platform and use its official download option when available.", "warn", [{label:"Open source link", href:url}]);
   }
 }
 $("check").addEventListener("click", async () => {
@@ -118,7 +135,8 @@ $("check").addEventListener("click", async () => {
   saveHistory(url, platform);
 
   if (isDirectMediaUrl(url)) {
-    showStatus("This looks like a direct media-file link.", "info", [{label:"Download media file", onClick:() => downloadDirectMedia(url)}, {label:"Open source", href:url}]);
+    const label = $("format").value === "mp3" ? "Download audio (MP3)" : "Download media file";
+    showStatus("This looks like a direct media-file link. Choose MP3 audio above to extract its audio, or Original/MP4 to keep the source file. This only works when the host allows browser access.", "info", [{label, onClick:() => downloadDirectMedia(url)}, {label:"Open source", href:url}]);
     return;
   }
   if (platform === "Other website") {
