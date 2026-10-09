@@ -142,7 +142,15 @@ $("check").addEventListener("click", async () => {
       return;
     }
     if (result.recognized) {
-      showStatus(result.platform + " link recognized. This free API identifies platforms but does not extract protected videos. Use the platform's official save/download feature when available.", "warn", [{label:"Open " + result.platform, href:url}]);
+      const actions = [{label:"Open video", href:url}];
+      if (result.platform === "YouTube") {
+        actions.push({label:"YouTube Studio (your uploads)", href:"https://studio.youtube.com/"});
+        showStatus("YouTube link recognized. This free Cloudflare/GitHub setup cannot extract a video stream or MP3 from YouTube. For a video you uploaded, open YouTube Studio and use its official download option; then only use media you have permission to save.", "warn", actions);
+      } else if (result.platform === "Facebook") {
+        showStatus("Facebook link recognized. This setup identifies the link but cannot extract the video/audio stream. Open the video and use Facebook's own download option if it is offered, or download your own uploaded media from the platform.", "warn", actions);
+      } else {
+        showStatus(result.platform + " link recognized. This setup does not extract protected video/audio streams. Use the platform's official download/save option where available.", "warn", actions);
+      }
     } else {
       showStatus("The API could not identify this platform. You can still open the link in your browser.", "info", [{label:"Open link", href:url}]);
     }
