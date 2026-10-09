@@ -22,3 +22,8 @@ body{margin:0;background:radial-gradient(ellipse at 80% 0%,#25204b 0,transparent
 .history{display:flex;flex-direction:column;gap:9px}.historyitem{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--line);background:#0c1020;border-radius:12px;font-size:12px}.historyitem .hurl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;color:#c5cbe7}.historyitem button{background:transparent;color:#a9b0d2;border:0;font-size:18px;cursor:pointer}.empty{color:var(--muted);font-size:13px;padding:12px 0}
 .foot{text-align:center;color:#707998;font-size:11px;line-height:1.7;margin:25px 8px}
 @media(max-width:520px){.wrap{padding:15px 12px 35px}.card{padding:16px;border-radius:18px}.inputrow{flex-direction:column}.inputrow .btn{width:100%}.platforms{gap:6px}.platform{font-size:11px}.grid2{grid-template-columns:1fr}.pill{font-size:10px;padding:6px 8px}.hero{margin-top:20px}.brand{font-size:16px}}
+
+.status.success{background:#102a24;border:1px solid #2f8068;color:#baffdf}
+.status-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.status-action{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-size:12px;padding:10px 12px}
+button:disabled{opacity:.65;cursor:wait}
